@@ -1,0 +1,20 @@
+{
+	"name": "APIdog LongPoll",
+	"description": "Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а",
+	"version": "0.1",
+	"manifest_version": 2,
+	"app": {
+		"urls": [
+			"http://apidog.ru/"
+		],
+		"launch": {
+			"web_url": "http://apidog.ru/"
+		}
+	},
+	"permissions": [
+		"http://*.vk.com/",
+		"https://*.vk.com/",
+		"http://*.apidog.ru/",
+		"https://*.apidog.ru/"
+	],
+}
