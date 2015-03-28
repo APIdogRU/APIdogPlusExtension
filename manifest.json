@@ -3,6 +3,10 @@
 	"description": "Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а",
 	"version": "0.1",
 	"manifest_version": 2,
+	"background": {
+		"scripts": ["background.js"],
+		"persistent": false
+	},
 	"app": {
 		"urls": [
 			"http://apidog.ru/"
@@ -15,6 +19,11 @@
 		"http://*.vk.com/",
 		"https://*.vk.com/",
 		"http://*.apidog.ru/",
-		"https://*.apidog.ru/"
+		"https://*.apidog.ru/",
+		"declarativeContent",
+		"declarativeWebRequest"
 	],
+	"externally_connectable": {
+		"matches": ["*://*.apidog.ru/*"]
+	}
 }
