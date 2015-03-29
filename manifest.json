@@ -13,6 +13,7 @@
 	"permissions": [
 		"tabs",
 		"http://*.apidog.ru/*",
+		"https://*.apidog.ru/*",
 		"http://*.vk.com/",
 		"https://*.vk.com/"
 	],
