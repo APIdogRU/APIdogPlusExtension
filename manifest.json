@@ -1,29 +1,23 @@
 {
 	"name": "APIdog LongPoll",
+	"short_name": "APIdog LP",
 	"description": "Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а",
-	"version": "0.1",
+	"version": "1.0",
 	"manifest_version": 2,
-	"background": {
-		"scripts": ["background.js"],
-		"persistent": false
-	},
-	"app": {
-		"urls": [
-			"http://apidog.ru/"
-		],
-		"launch": {
-			"web_url": "http://apidog.ru/"
-		}
+	"author": "APIdog",
+	"homepage_url": "http://apidog.ru/extensions",
+	"icons": {
+		"114": "icon114.png",
+		"64": "icon64.png"
 	},
 	"permissions": [
+		"tabs",
+		"http://*.apidog.ru/*",
 		"http://*.vk.com/",
-		"https://*.vk.com/",
-		"http://*.apidog.ru/",
-		"https://*.apidog.ru/",
-		"declarativeContent",
-		"declarativeWebRequest"
+		"https://*.vk.com/"
 	],
-	"externally_connectable": {
-		"matches": ["*://*.apidog.ru/*"]
-	}
+	"content_scripts": [{
+		"matches": ["http://apidog.ru/*"],
+		"js": ["longpoll.js"]
+	}]
 }
