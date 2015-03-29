@@ -103,3 +103,4 @@ function Request (o) {
 	xhr.open(type, url, true);
 	xhr.send(type === "POST" ? params : null);
 };
+init();

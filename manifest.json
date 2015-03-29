@@ -2,7 +2,7 @@
 	"name": "APIdog LongPoll",
 	"short_name": "APIdog LP",
 	"description": "Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а",
-	"version": "1.0",
+	"version": "1.1",
 	"manifest_version": 2,
 	"author": "APIdog",
 	"homepage_url": "http://apidog.ru/extensions",
