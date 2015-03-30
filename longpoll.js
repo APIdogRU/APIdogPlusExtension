@@ -1,6 +1,6 @@
 /*
  * APIdog LongPoll extension for Chrome
- * v1.0
+ * v1.2
  * 29/03/2015
  */
 
@@ -14,13 +14,11 @@ function sendEvent (method, data, callback) {
 window.addEventListener("message", function (event) {
 	if (event.source != window)
 		return;
-
 	if (event.data.method) {
 		console.log("APIdogExtensionReceiverSendEvent<" + event.data.method + ">: ", event.data);
 		receiveEvent(event.data);
 	};
 });
-
 function receiveEvent (event) {
 	console.log("APIdogExtensionReceiverOut<" + event.method + ">: ", event);
 	switch (event.method) {
@@ -30,7 +28,7 @@ function receiveEvent (event) {
 	};
 };
 function init () {
-	console.log("longpoll.js: inited");
+	console.log("APIdogExtension<Inited>");
 	sendEvent("onAccessTokenRequire", {}, "onAccessTokenReceived");
 };
 function start (userAccessToken) {
@@ -59,11 +57,15 @@ function getLongPoll (o) {
 		onComplete: function (response) {
 			handleLongPollData(response.json, o);
 		},
+		onError: function (event) {
+			sendEvent("onLongPollConnectionError", {error: event});
+			start(o.userAccessToken);
+		},
 		type: "POST"
 	});
 };
 function handleLongPollData (j, o) {
-	if (j.failed)
+	if (!j || j.failed)
 		return start(o.userAccessToken);
 
 	o.ts = j.ts;
@@ -86,10 +88,16 @@ function Request (o) {
 	o = o || {};
 	var xhr = new XMLHttpRequest();
 	xhr.onloadend = function (event) {
-		o.onComplete && o.onComplete({
-			text: event.target.responseText,
-			json: JSON.parse(event.target.responseText)
-		});
+		var result = event.target.responseText;
+		if (!result)
+			return o.onError && o.onError({response: result, event: event, xhr: xhr});
+		try {
+			result = JSON.parse(result);
+		} catch (e) {
+			return o.onError && o.onError({response: result, event: event, xhr: xhr});
+		} finally {
+			o.onComplete && o.onComplete({json: result || {}});
+		};
 	};
 	var url = o.url,
 		type = (o.type || "get").toUpperCase();
@@ -103,4 +111,5 @@ function Request (o) {
 	xhr.open(type, url, true);
 	xhr.send(type === "POST" ? params : null);
 };
+
 init();
