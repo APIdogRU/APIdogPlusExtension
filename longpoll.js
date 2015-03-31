@@ -33,7 +33,8 @@ function init () {
 };
 function start (userAccessToken) {
 	API("messages.getLongPollServer", {
-		access_token: userAccessToken
+		access_token: userAccessToken,
+		https: 1
 	}, function (data) {
 		if (!data.response) {
 			data = data.error;
@@ -51,7 +52,7 @@ function start (userAccessToken) {
 };
 
 function getLongPoll (o) {
-	var url = "http://" + o.server + "?act=a_check&key=" + o.key + "&ts=" + o.ts + "&wait=25&mode=66";
+	var url = "https://" + o.server + "?act=a_check&key=" + o.key + "&ts=" + o.ts + "&wait=25&mode=66";
 	Request({
 		url: url,
 		onComplete: function (response) {
