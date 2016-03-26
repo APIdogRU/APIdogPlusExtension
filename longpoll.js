@@ -1,116 +1,82 @@
 /*
- * APIdog LongPoll extension for Chrome
- * v1.2
- * 29/03/2015
+ * APIdog+ extension
+ * version 2.0
+ * 25/03/2016
  */
 
-function sendEvent (method, data, callback) {
-	console.log("longpoll.js: sendEvent<" + method + ">");
-	data.method = method;
-	data.callback = callback;
-	window.postMessage(data, "*");
-	console.log("APIdogExtensionReceiverSendEvent<" + method + ">:", data);
-};
-window.addEventListener("message", function (event) {
-	if (event.source != window)
-		return;
-	if (event.data.method) {
-		console.log("APIdogExtensionReceiverSendEvent<" + event.data.method + ">: ", event.data);
-		receiveEvent(event.data);
-	};
-});
-function receiveEvent (event) {
-	console.log("APIdogExtensionReceiverOut<" + event.method + ">: ", event);
-	switch (event.method) {
-		case "onAccessTokenReceived":
-			start(event.useraccesstoken);
-			break;
-	};
-};
-function init () {
-	console.log("APIdogExtension<Inited>");
-	sendEvent("onAccessTokenRequire", {}, "onAccessTokenReceived");
-};
-function start (userAccessToken) {
-	API("messages.getLongPollServer", {
-		access_token: userAccessToken,
-		https: 1
-	}, function (data) {
-		if (!data.response) {
-			data = data.error;
-			sendEvent("onLongPollDataReceived", {errorId: data.error_code, error: data});
-			return;
-		};
-		data = data.response;
-		getLongPoll({
-			userAccessToken: userAccessToken,
-			server: data.server,
-			key: data.key,
-			ts: data.ts
+/**
+ * Вся грязная работа по LongPoll
+ */
+var LongPoll = {
+
+	userAccessToken: null,
+	params: null,
+
+	/**
+	 * Инициализация LongPoll
+	 */
+	init: function (userAccessToken) {
+		this.userAccessToken = userAccessToken;
+		this.getServer();
+	},
+
+	/**
+	 * Получение адреса сервера LongPoll
+	 */
+	getServer: function () {
+		var self = this;
+
+		API("messages.getLongPollServer", {
+			access_token: this.userAccessToken
+		}, function (data) {
+
+			if (!data.response) {
+				data = data.error;
+				sendEvent(METHOD_LONGPOLL_DATA_RECEIVED, {
+					errorId: ERROR_NO_RESPONSE_VKAPI,
+					error: data
+				});
+				return;
+			};
+
+			self.params = data.response;
+
+			self.request();
 		});
-	});
-};
+	},
 
-function getLongPoll (o) {
-	var url = "https://" + o.server + "?act=a_check&key=" + o.key + "&ts=" + o.ts + "&wait=25&mode=66";
-	Request({
-		url: url,
-		onComplete: function (response) {
-			handleLongPollData(response.json, o);
-		},
-		onError: function (event) {
-			sendEvent("onLongPollConnectionError", {error: event});
-			start(o.userAccessToken);
-		},
-		type: "POST"
-	});
-};
-function handleLongPollData (j, o) {
-	if (!j || j.failed)
-		return start(o.userAccessToken);
+	/**
+	 * Запрос к LongPoll для получения новых событий
+	 */
+	request: function () {
+		var self = this;
+		new RequestTask("https://" + this.params.server + "?act=a_check&key=" + this.params.key + "&ts=" + this.params.ts + "&wait=25&mode=66")
+			.setOnComplete(function (result) {
 
-	o.ts = j.ts;
+				self.params.ts = result.result.ts;
+				self.request();
+				self.sendEvents(result.result.updates);
 
-	sendEvent("onLongPollDataReceived", {updates: j.updates});
-	getLongPoll(o);
-};
+			})
+			.setOnError(function (event) {
 
-function API (method, params, callback) {
-	Request({
-		url: "https://api.vk.com/method/" + method,
-		content: params,
-		onComplete: function (response) {
-			callback(response.json);
-		},
-		type: "GET"
-	});
-};
-function Request (o) {
-	o = o || {};
-	var xhr = new XMLHttpRequest();
-	xhr.onloadend = function (event) {
-		var result = event.target.responseText;
-		if (!result)
-			return o.onError && o.onError({response: result, event: event, xhr: xhr});
-		try {
-			result = JSON.parse(result);
-		} catch (e) {
-			return o.onError && o.onError({response: result, event: event, xhr: xhr});
-		} finally {
-			o.onComplete && o.onComplete({json: result || {}});
-		};
-	};
-	var url = o.url,
-		type = (o.type || "get").toUpperCase();
-	if (o.content) {
-		var params = [], c = o.content, e = encodeURIComponent;
-		for (var k in c)
-			params.push(e(k) + "=" + e(c[k]));
-		if (type === "GET")
-			url += (!~url.indexOf("?") ? "?" : "&") + params.join("&");
-	};
-	xhr.open(type, url, true);
-	xhr.send(type === "POST" ? params : null);
-};
+				sendEvent(METHOD_LONGPOLL_CONNECTION_ERROR, {
+					errorId: ERROR_WHILE_REQUEST_LONGPOLL,
+					error: event
+				});
+				this.getServer();
 
-init();
+			})
+			.post();
+	},
+
+	/**
+	 * Отправка событий на сайт
+	 */
+	sendEvents: function (items) {
+		sendEvent(METHOD_LONGPOLL_DATA_RECEIVED, {
+			updates: items
+		});
+	}
+
+};
