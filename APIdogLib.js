@@ -28,6 +28,7 @@ function sendEvent (method, data, callback) {
 	data.method = method;
 	data.callback = callback;
 	data.version = EXTENSION_VERSION;
+	data.agent = EXTENSION_AGENT;
 	window.postMessage(data, "*");
 };
 
@@ -71,7 +72,7 @@ var APIdog = {
 };
 
 /**
- * Обработчик события нового события
+ * Обработчик нового события
  */
 window.addEventListener("message", function (event) {
 	if (event.source != window) {
