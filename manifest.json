@@ -22,7 +22,7 @@
 		"scripts": ["background.js"]
 	},
 	"content_scripts": [{
-		"matches": ["http://apidog.ru/*", "https://apidog.ru/*"],
+		"matches": ["*://apidog.ru/*"],
 		"js": ["APIdogLib.js", "longpoll.js"]
 	}]
 }
