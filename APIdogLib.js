@@ -5,6 +5,7 @@
 
 var
 	EXTENSION_VERSION = 2.0,
+	EXTENSION_AGENT = "webkit",
 
 	METHOD_ACCESS_TOKEN_REQUIRE = "onAccessTokenRequire",
 	METHOD_LONGPOLL_DATA_RECEIVED = "onLongPollDataReceived",
