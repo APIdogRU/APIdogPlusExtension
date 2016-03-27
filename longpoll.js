@@ -53,6 +53,11 @@ var LongPoll = {
 		new RequestTask("https://" + this.params.server + "?act=a_check&key=" + this.params.key + "&ts=" + this.params.ts + "&wait=25&mode=66")
 			.setOnComplete(function (result) {
 
+				if (result.result.failed) {
+
+					return self.getServer();
+				};
+
 				self.params.ts = result.result.ts;
 				self.request();
 				self.sendEvents(result.result.updates);
