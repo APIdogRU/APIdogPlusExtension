@@ -2,7 +2,7 @@
  * Кроссбраузерная библиотека для удобного использования API расширений для Gecko/Webkit одновременно
  * Version 1.0: 25 марта 2016 г.
  */
-
+// test
 var
 	EXTENSION_VERSION = 2.0,
 	EXTENSION_AGENT = "webkit",
