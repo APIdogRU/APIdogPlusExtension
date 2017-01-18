@@ -1,11 +1,6 @@
-/**
- * Кроссбраузерная библиотека для удобного использования API расширений для Gecko/Webkit одновременно
- * Version 1.0: 25 марта 2016 г.
- */
-// test
 var
-	EXTENSION_VERSION = 2.0,
-	EXTENSION_AGENT = "webkit",
+	EXTENSION_VERSION = 2.1,
+	EXTENSION_AGENT = "all",
 
 	METHOD_ACCESS_TOKEN_REQUIRE = "onAccessTokenRequire",
 	METHOD_LONGPOLL_DATA_RECEIVED = "onLongPollDataReceived",
@@ -13,7 +8,7 @@ var
 	METHOD_EXECUTE_API_REQUESTED = "onAPIRequestExecuted",
 	METHOD_FILE_UPLOADED = "onFileUploaded",
 	METHOD_FILE_UPLOAD_PROGRESS = "onFileUploading",
-	IMETHOD_FILE_UPLOAD_READ = "onFileReceivedToWorker",
+	METHOD_FILE_UPLOAD_READ = "onFileReceivedToWorker",
 
 	EVENT_ACCESS_TOKEN_RECEIVED = "onAccessTokenReceived",
 	EVENT_EXECUTE_API_REQUEST = "onAPIRequestExecute",
@@ -25,7 +20,7 @@ var
 /**
  * Отправляет событие из расширения на страницу
  */
-function sendEvent (method, data, callback) {
+function sendEvent(method, data, callback) {
 	data.method = method;
 	data.callback = callback;
 	data.version = EXTENSION_VERSION;
@@ -36,7 +31,7 @@ function sendEvent (method, data, callback) {
 /**
  * Функция-распределитель событий
  */
-function receiveEvent (method, data) {
+function receiveEvent(method, data) {
 	switch (method) {
 
 		case EVENT_ACCESS_TOKEN_RECEIVED:
@@ -45,7 +40,7 @@ function receiveEvent (method, data) {
 			break;
 
 		case EVENT_EXECUTE_API_REQUEST:
-			API(data.requestMethod, data.requestParams, function (result) {
+			API(data.requestMethod, data.requestParams, function(result) {
 				sendEvent(METHOD_EXECUTE_API_REQUESTED, {
 					requestId: data.requestId,
 					requestResult: result
@@ -55,7 +50,7 @@ function receiveEvent (method, data) {
 
 		case EVENT_FILE_UPLOAD_REQUEST:
 			chrome.runtime.sendMessage({
-				method: IMETHOD_FILE_UPLOAD_READ,
+				method: METHOD_FILE_UPLOAD_READ,
 				file: data.file,
 				field: data.field,
 				getServerMethod: data.getServerMethod,
@@ -68,14 +63,12 @@ function receiveEvent (method, data) {
 
 var APIdog = {
 
-	userAgent: "VKAndroidApp/4.38-816 (Android 6.0; SDK 23; x86;  Google Nexus 5X; ru)"
-
 };
 
 /**
  * Обработчик нового события
  */
-window.addEventListener("message", function (event) {
+window.addEventListener("message", function(event) {
 	if (event.source != window) {
 		return;
 	};
@@ -86,16 +79,16 @@ window.addEventListener("message", function (event) {
 });
 
 /**
- * Запрос на любой сайт
+ * Запрос в сеть
  */
-function RequestTask (url, params) {
+function RequestTask(url, params) {
 	var context = this;
 
 	this.xhr = new XMLHttpRequest();
 	this.url = url;
 	this.params = params || {};
 
-	this.xhr.onloadend = function (event) {
+	this.xhr.onloadend = function(event) {
 		var result = event.target.responseText;
 		if (!result) {
 			return context.onError && context.onError({
@@ -128,24 +121,24 @@ RequestTask.prototype = {
 	onComplete: null,
 	onError: null,
 
-	setOnComplete: function (onComplete) {
+	setOnComplete: function(onComplete) {
 		this.onComplete = onComplete;
 		return this;
 	},
 
-	setOnError: function (onError) {
+	setOnError: function(onError) {
 		this.onError = onError;
 		return this;
 	},
 
-	get: function () {
+	get: function() {
 		this.url += (!~this.url.indexOf("?") ? "?" : "&") + this.params.join("&");
 		this.type = "GET";
 		this.send(null);
 		return this;
 	},
 
-	post: function () {
+	post: function() {
 		this.type = "POST";
 		var queryString = [], key;
 
@@ -157,7 +150,7 @@ RequestTask.prototype = {
 		return this;
 	},
 
-	send: function (body) {
+	send: function(body) {
 		this.xhr.open(this.type, this.url, true);
 		this.xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 		this.xhr.send(this.type === "POST" ? body : null);
@@ -169,15 +162,14 @@ RequestTask.prototype = {
 /**
  * Запрос к API ВКонтакте
  */
- function API (method, params, callback) {
+ function API(method, params, callback) {
  	params = params || {};
- 	params.https = 1;
 	var request = new RequestTask("https://api.vk.com/method/" + method, params)
-		.setOnComplete(function (result) {
+		.setOnComplete(function(result) {
 			if (result.isSuccess) {
 				callback(result.result);
 			} else {
-				console.error(result); // TODO: как-то реагировать на ошибку
+				callback()
 			}
 		})
 		.post();
