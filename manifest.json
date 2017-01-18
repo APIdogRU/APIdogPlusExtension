@@ -23,7 +23,7 @@
 	},
 	"content_scripts": [{
 		"matches": ["*://apidog.ru/*"],
-		"js": ["APIdogLib.js", "longpoll.js"],
+		"js": ["API.js", "APIdogLib.js", "longpoll.js"],
 		"all_frames": true
 	}]
 }

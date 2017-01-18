@@ -18,6 +18,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(info) {
 }, ["blocking", "requestHeaders"]);
 
 chrome.runtime.onMessage.addListener(function(request) {
+	console.log(request);
     switch (request.method) {
     	case "onFileReceivedToWorker":
         	var worker = new Worker("uploader.js");
