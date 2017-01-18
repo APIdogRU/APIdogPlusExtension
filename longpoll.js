@@ -14,7 +14,7 @@ var LongPoll = {
 	 * Инициализация LongPoll
 	 */
 	init: function(userAccessToken) {
-		console.info("[Extension] start init longpoll");
+//		console.info("[Extension] start init longpoll");
 		this.stopped = false;
 		this.userAccessToken = userAccessToken;
 		this.getServer();
@@ -44,7 +44,7 @@ var LongPoll = {
 
 			self.params = data.response;
 			self.request();
-			console.info("[Extension] Getted longpoll server");
+//			console.info("[Extension] Getted longpoll server");
 		});
 	},
 
@@ -55,7 +55,7 @@ var LongPoll = {
 		var self = this;
 		this.xhr = new RequestTask("https://" + this.params.server + "?act=a_check&key=" + this.params.key + "&ts=" + this.params.ts + "&wait=25&mode=66")
 			.setOnComplete(function(result) {
-				console.log("[Extension] Received response from longpoll");
+//				console.log("[Extension] Received response from longpoll");
 				if (result.result.failed) {
 					return self.getServer();
 				};
@@ -96,5 +96,5 @@ var LongPoll = {
 window.addEventListener("beforeunload", function() {
 	LongPoll.stopped = true;
 	LongPoll.xhr && LongPoll.xhr.abort();
-	console.info("[Extension] LongPoll stopped");
+//	console.info("[Extension] LongPoll stopped");
 });
