@@ -9,7 +9,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(info) {
 			case "origin": header.value = "https://vk.com"; break;
 		};
 	});
-console.log("	DO REQUEST");
 	return {requestHeaders: headers};
 }, {
 	urls: [
