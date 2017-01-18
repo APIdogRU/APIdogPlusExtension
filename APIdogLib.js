@@ -155,6 +155,10 @@ RequestTask.prototype = {
 		this.xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 		this.xhr.send(this.type === "POST" ? body : null);
 		return this;
+	},
+
+	abort: function() {
+		this.xhr.abort();
 	}
 
 };
@@ -169,7 +173,7 @@ RequestTask.prototype = {
 			if (result.isSuccess) {
 				callback(result.result);
 			} else {
-				callback()
+				console.info("ERROR API");
 			}
 		})
 		.post();
