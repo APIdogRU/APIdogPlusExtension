@@ -1,6 +1,6 @@
 /*
  * APIdog+ extension
- * version 2.1
+ * version 2.11
  * 18/01/2017
  */
 
