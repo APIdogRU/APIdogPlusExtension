@@ -8,13 +8,19 @@ var LongPoll = {
 
 	userAccessToken: null,
 	params: null,
-	stopped: false,
+	stopped: true,
 
 	/**
 	 * Инициализация LongPoll
 	 */
 	init: function(userAccessToken) {
-//		console.info("[Extension] start init longpoll");
+		console.info("[Extension] start init longpoll");
+
+		if (!this.stopped) {
+			console.log("[Extension] already running");
+			return;
+		}
+
 		this.stopped = false;
 		this.userAccessToken = userAccessToken;
 		this.getServer();
@@ -70,7 +76,7 @@ var LongPoll = {
 					errorId: ERROR_WHILE_REQUEST_LONGPOLL,
 					error: event
 				});
-				this.getServer();
+				self.getServer();
 			})
 			.post();
 	},
@@ -96,5 +102,5 @@ var LongPoll = {
 window.addEventListener("beforeunload", function() {
 	LongPoll.stopped = true;
 	LongPoll.xhr && LongPoll.xhr.abort();
-//	console.info("[Extension] LongPoll stopped");
+	console.info("[Extension] LongPoll stopped");
 });

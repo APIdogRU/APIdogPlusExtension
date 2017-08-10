@@ -25,7 +25,8 @@ function sendEvent(method, data, callback) {
 	data.callback = callback;
 	data.version = EXTENSION_VERSION;
 	data.agent = EXTENSION_AGENT;
-	window.postMessage(data, "*");
+	console.log("EXT", JSON.stringify(data));
+	window.postMessage(JSON.stringify(data), "*");
 };
 
 /**
@@ -76,8 +77,18 @@ window.addEventListener("message", function(event) {
 		return;
 	};
 
-	if (event.data.method) {
-		receiveEvent(event.data.method, event.data);
+	var res;
+
+	// дитчайший костыль
+	try {
+		res = JSON.parse(event.data)
+	} catch (e) {
+//		console.error("DROPPED ON ", event.data, e);
+		return;
+	}
+
+	if (res.method) {
+		receiveEvent(res.method, JSON.parse(event.data));
 	};
 });
 

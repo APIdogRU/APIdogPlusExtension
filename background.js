@@ -2,13 +2,16 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(info) {
 	var headers = info.requestHeaders;
 	headers.forEach(function(header, i) {
 		switch (header.name.toLowerCase()) {
-			case "user-agent": header.value = "VKAndroidApp (Android 6.0; SDK 23; x86)"; break;
+			case "user-agent": header.value = "VKAndroidApp/4.12-1118"; break;
 
 			case "referer": header.value = "https://vk.com/"; break;
+
+			case "cookie": header.value = ""; break;
 
 			case "origin": header.value = "https://vk.com"; break;
 		};
 	});
+
 	return {requestHeaders: headers};
 }, {
 	urls: [

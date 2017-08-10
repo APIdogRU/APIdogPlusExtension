@@ -73,6 +73,8 @@ RequestTask.prototype = {
 	send: function(body) {
 		this.xhr.open(this.type, this.url, true);
 		this.xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		this.xhr.setRequestHeader("User-Agent", "VKAndroidApp/4.12-1118");
+		this.xhr.setRequestHeader("Cookie", "");
 		this.xhr.send(this.type === "POST" ? body : null);
 		return this;
 	},
