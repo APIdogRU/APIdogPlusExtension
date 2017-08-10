@@ -1,6 +1,6 @@
 /*
  * APIdog+ extension
- * version 2.1
+ * version 2.11
  * 18/01/2017
  */
 
@@ -102,5 +102,5 @@ var LongPoll = {
 window.addEventListener("beforeunload", function() {
 	LongPoll.stopped = true;
 	LongPoll.xhr && LongPoll.xhr.abort();
-	console.info("[Extension] LongPoll stopped");
+//	console.info("[Extension] LongPoll stopped");
 });
