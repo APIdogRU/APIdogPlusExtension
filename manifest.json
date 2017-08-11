@@ -7,8 +7,8 @@
 	"author": "APIdog",
 	"homepage_url": "http://apidog.ru/extensions",
 	"icons": {
-		"114": "icon114.png",
-		"64": "icon64.png"
+		"114": "images/114.png",
+		"64": "images/64.png"
 	},
 	"permissions": [
 		"tabs",
