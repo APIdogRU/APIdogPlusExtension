@@ -14,16 +14,13 @@
 		"tabs",
 		"webRequest",
 		"webRequestBlocking",
-		"*://apidog.ru/*",
-		"*://*.apidog.ru/*",
-		"*://*.vk.com/*",
-		"*://192.168.1.111/*"
+		"<all_urls>"
 	],
 	"background": {
 		"scripts": ["background.js"]
 	},
 	"content_scripts": [{
-		"matches": ["*://apidog.ru/*", "*://192.168.1.111/*"],
+		"matches": ["*://*/*"],
 		"js": ["API.js", "APIdogLib.js", "longpoll.js"],
 		"all_frames": true
 	}]
