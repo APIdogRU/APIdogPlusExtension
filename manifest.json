@@ -2,7 +2,7 @@
 	"name": "APIdog Plus",
 	"short_name": "APIdog+",
 	"description": "Расширение, позволяющее расширить возможности работы сайта APIdog.",
-	"version": "2.1",
+	"version": "3.0",
 	"manifest_version": 2,
 	"author": "APIdog",
 	"homepage_url": "http://apidog.ru/extensions",
@@ -17,14 +17,15 @@
 		"*://apidog.ru/*",
 		"*://*.apidog.ru/*",
 		"*://*.vk.com/*",
+		"*://apidog646.vlad805.ru/*",
 		"*://192.168.1.111/*"
 	],
 	"background": {
 		"scripts": ["background.js"]
 	},
 	"content_scripts": [{
-		"matches": ["*://apidog.ru/*", "*://192.168.1.111/*"],
-		"js": ["API.js", "APIdogLib.js", "longpoll.js"],
+		"matches": ["*://apidog.ru/*", "*://*.apidog.ru/*", "*://apidog646.vlad805.ru/*", "*://192.168.1.111/*"],
+		"js": ["libapidog0.js"],
 		"all_frames": true
 	}]
 }
