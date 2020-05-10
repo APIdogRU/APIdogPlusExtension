@@ -47,6 +47,31 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(info) {
 	]
 }, ["blocking", "requestHeaders"]);
 
+
+// https://stackoverflow.com/a/55215898/6142038
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	fetch(request.input, request.init).then(function(response) {
+		return response.text().then(function(text) {
+			sendResponse([{
+				body: text,
+				status: response.status,
+				statusText: response.statusText,
+			}, null]);
+		});
+	}, function(error) {
+		sendResponse([null, error]);
+	});
+	return true;
+});
+
+
+
+
+
+
+
+
+
 //noinspection JSUnusedGlobalSymbols
 function UNUSED_CODE() {
 	/**

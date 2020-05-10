@@ -1,134 +1,32 @@
 /**
  * APIdog Plus extension
- * @version 3.0
+ * @version 3.1
  * @author Vladislav Veluga; velu.ga
  */
 
-
-/**
- * Запрос в сеть
- * @param {string} url
- * @param {object} params
- */
-function RequestTask(url, params) {
-	var context = this;
-
-	this.xhr = new XMLHttpRequest();
-	this.url = url;
-	this.params = params || {};
-
-	this.xhr.onloadend = function(event) {
-		var result = event.target["responseText"];
-		if (!result) {
-			return context.onError && context.onError({
-				result: result,
-				event: event,
-				__xhr: this
-			});
-		}
-
-		try {
-			result = JSON.parse(result);
-		} catch (e) {
-			return context.onError && context.onError({
-				result: result,
-				event: event,
-				__xhr: this
-			});
-		} finally {
-			context.onComplete && context.onComplete({
-				result: result || {},
-				isSuccess: true
-			});
-		}
-	};
-}
-
-//noinspection JSUnusedGlobalSymbols
-RequestTask.prototype = {
-
-	/**
-	 * Callback-функция при успешном получени ответа
-	 */
-	onComplete: null,
-
-	/**
-	 * Fallback-функция при неудаче
-	 */
-	onError: null,
-
-	/**
-	 * Смена callback
-	 * @param {function} onComplete
-	 * @returns {RequestTask}
-	 */
-	setOnComplete: function(onComplete) {
-		this.onComplete = onComplete;
-		return this;
-	},
-
-	/**
-	 * Смена fallback
-	 * @param {function} onError
-	 * @returns {RequestTask}
-	 */
-	setOnError: function(onError) {
-		this.onError = onError;
-		return this;
-	},
-
-	/**
-	 * Выполнить запрос с помощью GET
-	 * @returns {RequestTask}
-	 */
-	get: function() {
-		this.url += (!~this.url.indexOf("?") ? "?" : "&") + this.params.join("&");
-		this.type = "GET";
-		this.__send(null);
-		return this;
-	},
-
-	/**
-	 * Выполнить запрос с помощью POST
-	 * @returns {RequestTask}
-	 */
-	post: function() {
-		this.type = "POST";
-		var queryString = [], key;
-
-		for (key in this.params) {
-			if (this.params.hasOwnProperty(key)) {
-				queryString.push(encodeURIComponent(key) + "=" + encodeURIComponent(this.params[key]));
-			}
-		}
-
-		this.__send(queryString.join("&"));
-		return this;
-	},
-
-	/**
-	 * Отправка XHR
-	 * @param {string|FormData|null} body
-	 * @returns {RequestTask}
-	 * @private
-	 */
-	__send: function(body) {
-		this.xhr.open(this.type, this.url, true);
-		this.xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-		this.xhr.setRequestHeader("User-Agent", LongPoll.userAgent);
-		this.xhr.setRequestHeader("Cookie", "");
-		this.xhr.send(this.type === "POST" ? body : null);
-		return this;
-	},
-
-	/**
-	 * Отмена запроса
-	 */
-	abort: function() {
-		this.xhr.abort();
+// https://stackoverflow.com/a/55215898/6142038
+function fetchResource(input, init) {
+	// В Firefox такой костыль не работает, поэтому не делаем через жопу, а делаем прямо
+	if (navigator.userAgent.indexOf('Firefox') >= 0) {
+		return fetch(input, init);
 	}
 
-};
+	return new Promise((resolve, reject) => {
+		chrome.runtime.sendMessage({input, init}, messageResponse => {
+			const [response, error] = messageResponse;
+			if (response === null) {
+				reject(error);
+			} else {
+				// Use undefined on a 204 - No Content
+				const body = response.body ? new Blob([response.body]) : undefined;
+				resolve(new Response(body, {
+					status: response.status,
+					statusText: response.statusText,
+				}));
+			}
+		});
+	});
+}
 
 /**
  * Запрос к API ВКонтакте
@@ -137,20 +35,25 @@ RequestTask.prototype = {
  * @param {function} callback Callback-функция
  */
 function API(method, params, callback) {
- 	params = params || {};
-	new RequestTask("https://api.vk.com/method/" + method, params)
-		.setOnComplete(function(result) {
-			if (result.isSuccess) {
-				callback(result.result);
-			} else {
-				console.info("ERROR API");
-			}
-		})
-		.post();
+
+	var queryString = [], key;
+
+	for (key in params) {
+		if (params.hasOwnProperty(key)) {
+			queryString.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
+		}
+	}
+
+	fetchResource("https://api.vk.com/method/" + method, {
+		method: 'POST',
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded"
+		},
+		body: queryString.join("&"),
+	}).then(res => res.json()).then(json => callback(json));
 }
 
-var
-	EXTENSION_VERSION = 3.0,
+var EXTENSION_VERSION = 3.1,
 	EXTENSION_AGENT = "all",
 
 	METHOD_ACCESS_TOKEN_REQUIRE = "onAccessTokenRequire",
@@ -191,26 +94,9 @@ function receiveEvent(method, data) {
 		case EVENT_ACCESS_TOKEN_RECEIVED:
 			LongPoll.userAgent = data.userAgent;
 			LongPoll.apiVersion = data.apiVersion;
+			data.longpollVersion && (LongPoll.longpollVersion = data.longpollVersion);
 			LongPoll.init(data["useraccesstoken"]);
 			break;
-
-		/**
-		 * Загрузка файла
-		 * @deprecated
- 		 */
-		/*case EVENT_FILE_UPLOAD_REQUEST:
-			chrome.runtime.sendMessage({
-				method: METHOD_FILE_UPLOAD_READ,
-				file: data.file,
-				field: data.paramName,
-				filename: data.fileName,
-				getServerMethod: data.getServerMethod,
-				getServerParams: data.getServerParams,
-				saveMethod: data.saveMethod,
-				accessToken: data.accessToken,
-				uploadId: data.uploadId
-			});
-			break;*/
 	}
 }
 
@@ -252,7 +138,14 @@ var LongPoll = {
 	 * @public
 	 * @static
 	 */
-	apiVersion: 5.56,
+	apiVersion: 5.103,
+
+	/**
+	 * @var {number}
+	 * @public
+	 * @static
+	 */
+	longpollVersion: 3,
 
 	/**
 	 * @var {string|null}
@@ -308,7 +201,8 @@ var LongPoll = {
 
 		API("messages.getLongPollServer", {
 			access_token: this.__userAccessToken,
-			v: LongPoll.apiVersion
+			lp_version: LongPoll.longpollVersion,
+			v: LongPoll.apiVersion,
 		}, function(data) {
 			if (!data.response) {
 				data = data.error;
@@ -331,26 +225,22 @@ var LongPoll = {
 	 */
 	__request: function() {
 		var self = this;
-		this.__xhr = new RequestTask("https://" + this.__params.server + "?act=a_check&key=" + this.__params.key + "&ts=" + this.__params.ts + "&wait=25&mode=66", null)
-			.setOnComplete(function(result) {
-//				console.log("[Extension] Received response from longpoll");
-				if (result.result["failed"]) {
-					return self.__getServer();
-				}
-				self.__params.ts = result.result.ts;
-				self.__xhr = null;
-				self.__request();
-				self.__sendEvents(result.result.updates);
 
-			})
-			.setOnError(function(event) {
-				sendEvent(METHOD_LONGPOLL_CONNECTION_ERROR, {
-					errorId: ERROR_WHILE_REQUEST_LONGPOLL,
-					error: event
-				});
-				self.__getServer();
-			})
-			.post();
+		fetchResource("https://" + this.__params.server + "?act=a_check&key=" + this.__params.key + "&ts=" + this.__params.ts + "&wait=25&mode=66&version=" + LongPoll.longpollVersion).then(res => res.json()).then(result => {
+			if (result.failed) {
+				return self.__getServer();
+			}
+			self.__params.ts = result.ts;
+			self.__xhr = null;
+			self.__request();
+			self.__sendEvents(result.updates);
+		}).catch(event => {
+			sendEvent(METHOD_LONGPOLL_CONNECTION_ERROR, {
+				errorId: ERROR_WHILE_REQUEST_LONGPOLL,
+				error: event
+			});
+			self.__getServer();
+		});
 	},
 
 	/**
