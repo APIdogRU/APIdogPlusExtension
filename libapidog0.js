@@ -53,7 +53,7 @@ function API(method, params, callback) {
 	}).then(res => res.json()).then(json => callback(json));
 }
 
-var EXTENSION_VERSION = 3.1,
+var EXTENSION_VERSION = 3.2,
 	EXTENSION_AGENT = "all",
 
 	METHOD_ACCESS_TOKEN_REQUIRE = "onAccessTokenRequire",
@@ -93,7 +93,8 @@ function receiveEvent(method, data) {
 		 */
 		case EVENT_ACCESS_TOKEN_RECEIVED:
 			LongPoll.userAgent = data.userAgent;
-			LongPoll.apiVersion = data.apiVersion;
+			data.apiVersion && (LongPoll.apiVersion = data.apiVersion);
+			data.mode && (LongPoll.mode = data.mode);
 			data.longpollVersion && (LongPoll.longpollVersion = data.longpollVersion);
 			LongPoll.init(data["useraccesstoken"]);
 			break;
@@ -116,7 +117,7 @@ window.addEventListener("message", function(event) {
 			receiveEvent(res.method, res);
 		}
 	} catch (e) {
-		console.error("onMessage:", event.data, e);
+		// console.error("onMessage:", event.data, e);
 	}
 });
 
@@ -146,6 +147,13 @@ var LongPoll = {
 	 * @static
 	 */
 	longpollVersion: 3,
+
+	/**
+	 * @var {number}
+	 * @public
+	 * @static
+	 */
+	mode: 2 + 8 + 64 + 128,
 
 	/**
 	 * @var {string|null}
@@ -226,7 +234,7 @@ var LongPoll = {
 	__request: function() {
 		var self = this;
 
-		fetchResource("https://" + this.__params.server + "?act=a_check&key=" + this.__params.key + "&ts=" + this.__params.ts + "&wait=25&mode=66&version=" + LongPoll.longpollVersion).then(res => res.json()).then(result => {
+		fetchResource("https://" + this.__params.server + "?act=a_check&key=" + this.__params.key + "&ts=" + this.__params.ts + "&wait=25&mode=" + LongPoll.mode + "&version=" + LongPoll.longpollVersion).then(res => res.json()).then(result => {
 			if (result.failed) {
 				return self.__getServer();
 			}
