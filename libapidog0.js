@@ -109,15 +109,17 @@ window.addEventListener("message", function(event) {
 		return;
 	}
 
-	// дитчайший костыль
 	try {
-		var res = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+		const data = event.data;
+		// дитчайший костыль
+		const isJSON = typeof data === "string" && data[0] === '{' && data[data.length - 1] === '}';
+		const res = isJSON ? JSON.parse(event.data) : event.data;
 
-		if (res.method && !res.agent) {
+		if (res && res.method && !res.agent) {
 			receiveEvent(res.method, res);
 		}
 	} catch (e) {
-		// console.error("onMessage:", event.data, e);
+		console.error("onMessage:", event.data, e);
 	}
 });
 
@@ -139,7 +141,7 @@ var LongPoll = {
 	 * @public
 	 * @static
 	 */
-	apiVersion: 5.103,
+	apiVersion: 5.119,
 
 	/**
 	 * @var {number}
