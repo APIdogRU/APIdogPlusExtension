@@ -48,12 +48,13 @@ chrome.webRequest.onBeforeSendHeaders.addListener(info => {
 // https://stackoverflow.com/a/55215898/6142038
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	fetch(request.input, request.init)
-		.then(response => response.text())
-		.then(text => sendResponse([{
-			body: text,
-			status: response.status,
-			statusText: response.statusText,
-		}, null]))
+		.then(response => {
+			response.text().then(text => sendResponse([{
+				body: text,
+				status: response.status,
+				statusText: response.statusText,
+			}, null]));
+		})
 		.catch(error => sendResponse([null, error]));
 	return true;
 });

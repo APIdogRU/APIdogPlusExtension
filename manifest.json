@@ -2,7 +2,7 @@
 	"name": "APIdog Plus",
 	"short_name": "APIdog+",
 	"description": "Расширение, позволяющее расширить возможности работы сайта APIdog.",
-	"version": "3.3",
+	"version": "3.3.1",
 	"manifest_version": 2,
 	"author": "APIdog",
 	"homepage_url": "https://apidog.ru/6.6/?page=plus",
