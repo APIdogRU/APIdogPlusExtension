@@ -7,6 +7,7 @@
 // @grant        GM_xmlhttpRequest
 // @match        *://apidog.ru/*
 // @connect      api.vk.com
+// @connect      im.vk.com
 // @icon         https://www.google.com/s2/favicons?domain=apidog.ru
 // ==/UserScript==
 
