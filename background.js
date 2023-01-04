@@ -1,53 +1,53 @@
-const headerOverrideMap = {
-	// Смена User-Agent
-	'user-agent': __APIDOG_PLUS_USER_AGENT__,
+// const headerOverrideMap = {
+// 	// Смена User-Agent
+// 	'user-agent': 'VKAndroidApp/7.7-10445 (Android 10; SDK 29; arm64-v8a; Xiaomi Mi A1; en; 1920x1080)',
 
-	// Смена Referer (на всякий случай)
-	referer: 'https://vk.com/',
+// 	// Смена Referer (на всякий случай)
+// 	referer: 'https://vk.com/',
 
-	// Сброс кук
-	cookie: '',
+// 	// Сброс кук
+// 	cookie: '',
 
-	// С какого домена запрос
-	origin: 'https://vk.com',
-};
+// 	// С какого домена запрос
+// 	origin: 'https://vk.com',
+// };
 
-/**
- * Смена заголовков для запросов к API VK и другим служебным доменам
- */
-chrome.webRequest.onBeforeSendHeaders.addListener(info => {
-	const { requestHeaders } = info;
+// /**
+//  * Смена заголовков для запросов к API VK и другим служебным доменам
+//  */
+// chrome.webRequest.onBeforeSendHeaders.addListener(info => {
+// 	const { requestHeaders } = info;
 
-	// Тайпинги подсказывают, что оно может быть undefined
-	if (requestHeaders !== undefined) {
-		const referer = requestHeaders.find(header => header.name.toLowerCase() === 'referer');
+// 	// Тайпинги подсказывают, что оно может быть undefined
+// 	if (requestHeaders !== undefined) {
+// 		const referer = requestHeaders.find(header => header.name.toLowerCase() === 'referer');
 
-		// Меняем заголовки только если запрос с apidog.ru (или в худшем случае - не знаем откуда)
-		if (referer === undefined || referer.value?.includes('apidog.ru')) {
-			requestHeaders.forEach(header => {
-				const name = header.name.toLowerCase();
+// 		// Меняем заголовки только если запрос с apidog.ru (или в худшем случае - не знаем откуда)
+// 		if (referer === undefined || referer.value?.includes('apidog.ru')) {
+// 			requestHeaders.forEach(header => {
+// 				const name = header.name.toLowerCase();
 
-				if (name in headerOverrideMap) {
-					header.value = headerOverrideMap[name];
-				}
-			});
-		}
-	}
+// 				if (name in headerOverrideMap) {
+// 					header.value = headerOverrideMap[name];
+// 				}
+// 			});
+// 		}
+// 	}
 
-	return { requestHeaders };
-}, {
-	// Здесь также нужно описывать домены, которые используются внутри расширения: например, домен LongPoll, который
-	// расширение получает от API в libapidog0. Если не добавить - будет ошибка про CORS, ВК не добавляет заголовки
-	// Access-Control-Allow-Origin и, уж тем более, не разрешает читать ответ на других доменах. Подменяем заголовки
-	// так, чтобы оказалось, что это запрос с vk.com и ошибки не будет.
-	urls: [
-		'*://api.vk.com/*', // API
-		'*://api.vk.ru/*', // API fallback
-		'*://api.vk.me/*', // LongPoll
-		'*://*.mycdn.me/*', // видеозаписи
-		'*://*.vkuseraudio.net/*', // аудиозаписи
-	],
-}, ['blocking', 'requestHeaders']);
+// 	return { requestHeaders };
+// }, {
+// 	// Здесь также нужно описывать домены, которые используются внутри расширения: например, домен LongPoll, который
+// 	// расширение получает от API в libapidog0. Если не добавить - будет ошибка про CORS, ВК не добавляет заголовки
+// 	// Access-Control-Allow-Origin и, уж тем более, не разрешает читать ответ на других доменах. Подменяем заголовки
+// 	// так, чтобы оказалось, что это запрос с vk.com и ошибки не будет.
+// 	urls: [
+// 		'*://api.vk.com/*', // API
+// 		'*://api.vk.ru/*', // API fallback
+// 		'*://api.vk.me/*', // LongPoll
+// 		'*://*.mycdn.me/*', // видеозаписи
+// 		'*://*.vkuseraudio.net/*', // аудиозаписи
+// 	],
+// }, ['blocking', 'requestHeaders']);
 
 /**
  * @typedef {{ input: string, init: RequestInit }} IRequestArg

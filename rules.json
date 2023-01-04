@@ -1,0 +1,43 @@
+[
+	{
+		"id": 10,
+		"priority": 2,
+		"action": {
+			"type": "modifyHeaders",
+			"requestHeaders": [
+				{
+					"header": "user-agent",
+					"operation": "set",
+					"value": "VKAndroidApp/7.7-10445 (Android 10; SDK 29; arm64-v8a; Xiaomi Mi A1; en; 1920x1080)"
+				},
+				{
+					"header": "referer",
+					"operation": "set",
+					"value": "https://vk.com/"
+				},
+				{
+					"header": "origin",
+					"operation": "set",
+					"value": "https://vk.com/"
+				},
+				{
+					"header": "cookie",
+					"operation": "set",
+					"value": ""
+				}
+			]
+		},
+		"condition": {
+			"resourceTypes": [
+				"main_frame"
+			],
+			"initiatorDomains": [
+				"api.vk.com",
+				"api.vk.ru",
+				"api.vk.me",
+				"*.mycdn.me",
+				"*.vkuseraudio.net"
+			] // referer = apidog.ru, domains = *.vk.*
+		}
+	}
+]

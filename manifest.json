@@ -13,18 +13,19 @@
 	"default_locale": "ru",
 	"permissions": [
 		"tabs",
-		"webRequest",
-		"webRequestBlocking",
+		"declarativeNetRequest",
+		"contextMenus"
+	],
+	"host_permissions": [
 		"*://apidog.ru/*",
 		"*://*.apidog.ru/*",
 		"*://*.vk.com/*",
 		"*://*.vk.ru/*",
 		"*://*.vk.me/*",
-		"*://*.mycdn.me/*",
-		"contextMenus"
+		"*://*.mycdn.me/*"
 	],
 	"background": {
-		"scripts": ["config.js", "background.js"]
+		"service_worker": "background.js"
 	},
 	"content_scripts": [
 		{
@@ -32,5 +33,14 @@
 			"js": ["config.js", "libapidog0.js"],
 			"all_frames": true
 		}
-	]
+	],
+	"declarative_net_request": {
+		"rule_resources": [
+			{
+				"id": "main_ruleset",
+				"enabled": true,
+				"path": "rules.json"
+			  }
+		]
+	}
 }
