@@ -1,0 +1,19 @@
+{
+  "name": "@apidog/plus-extension",
+  "version": "3.4.0",
+  "description": "Расширение для браузеров с поддержкой WebExtensions для сайта APIdog",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/APIdogRU/APIdogPlusExtension.git"
+  },
+  "keywords": ["apidog"],
+  "author": "Vladislav <vlad@velu.ga> (https://velu.ga/)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/APIdogRU/APIdogPlusExtension/issues"
+  },
+  "homepage": "https://github.com/APIdogRU/APIdogPlusExtension#readme",
+  "devDependencies": {
+    "@types/chrome": "0.0.206"
+  }
+}

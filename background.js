@@ -1,56 +1,67 @@
+const headerOverrideMap = {
+	// Смена User-Agent
+	'user-agent': __APIDOG_PLUS_USER_AGENT__,
+
+	// Смена Referer (на всякий случай)
+	referer: 'https://vk.com/',
+
+	// Сброс кук
+	cookie: '',
+
+	// С какого домена запрос
+	origin: 'https://vk.com',
+};
+
+/**
+ * Смена заголовков для запросов к API VK и другим служебным доменам
+ */
 chrome.webRequest.onBeforeSendHeaders.addListener(info => {
-	const headers = info.requestHeaders;
+	const { requestHeaders } = info;
 
-	headers.forEach(header => {
-		switch (header.name.toLowerCase()) {
-			// Смена User-Agent
-			case 'user-agent': {
-				header.value = 'VKAndroidApp/5.56.1-4841';
-				break;
-			}
+	// Тайпинги подсказывают, что оно может быть undefined
+	if (requestHeaders !== undefined) {
+		const referer = requestHeaders.find(header => header.name.toLowerCase() === 'referer');
 
-			// Смена Referer (на всякий случай)
-			case 'referer': {
-				header.value = 'https://vk.com/';
-				break;
-			}
+		// Меняем заголовки только если запрос с apidog.ru (или в худшем случае - не знаем откуда)
+		if (referer === undefined || referer.value?.includes('apidog.ru')) {
+			requestHeaders.forEach(header => {
+				const name = header.name.toLowerCase();
 
-			// Сброс кук
-			case 'cookie': {
-				header.value = '';
-				break;
-			}
-
-			// Обозначение с какой страницы запрашивается информация
-	
-			case 'origin': {
-				header.value = 'https://vk.com';
-				break;
-			}
+				if (name in headerOverrideMap) {
+					header.value = headerOverrideMap[name];
+				}
+			});
 		}
-	});
+	}
 
-	return {
-		requestHeaders: headers,
-	};
+	return { requestHeaders };
 }, {
-	/**
-	 * Применение к запросам к API
-	 * Будет применяться только с сайта APIdog, поскольку background.js
-	 * подключается только ко перечисленным доменам в файле манифеста
-	 */
+	// Здесь также нужно описывать домены, которые используются внутри расширения: например, домен LongPoll, который
+	// расширение получает от API в libapidog0. Если не добавить - будет ошибка про CORS, ВК не добавляет заголовки
+	// Access-Control-Allow-Origin и, уж тем более, не разрешает читать ответ на других доменах. Подменяем заголовки
+	// так, чтобы оказалось, что это запрос с vk.com и ошибки не будет.
 	urls: [
-		'*://api.vk.com/*',
+		'*://api.vk.com/*', // API
+		'*://api.vk.ru/*', // API fallback
+		'*://api.vk.me/*', // LongPoll
+		'*://*.mycdn.me/*', // видеозаписи
+		'*://*.vkuseraudio.net/*', // аудиозаписи
 	],
 }, ['blocking', 'requestHeaders']);
 
+/**
+ * @typedef {{ input: string, init: RequestInit }} IRequestArg
+ */
 
-// https://stackoverflow.com/a/55215898/6142038
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+/**
+ * @see https://stackoverflow.com/a/55215898/6142038
+ * @param {IRequestArg} request
+ */
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 	fetch(request.input, request.init)
 		.then(response => {
-			response.text().then(text => sendResponse([{
-				body: text,
+			response.text().then(body => sendResponse([{
+				body,
 				status: response.status,
 				statusText: response.statusText,
 			}, null]));
@@ -59,6 +70,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	return true;
 });
 
+
+/**
+ * Контекстное меню для открытия ссылок vk.com в apidog.ru
+ */
 const CONTEXT_MENU_OPEN_IN_APIDOG_ID = 'open-in-apidog';
 
 chrome.contextMenus.create({
@@ -67,21 +82,21 @@ chrome.contextMenus.create({
 	contexts: ['link'],
 	targetUrlPatterns: [
 		'*://vk.com/*',
+		'*://vk.ru/*',
 		'*://m.vk.com/*',
+		'*://m.vk.ru/*',
 	],
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
 	switch (info.menuItemId) {
 		case CONTEXT_MENU_OPEN_IN_APIDOG_ID: {
-			const url = info.linkUrl;
+			const linkUrl = info.linkUrl;
 
-			const newUrl = url.replace(/^https?:\/\/(m\.|new\.)?(vk\.com|vkontakte\.ru)\//igm, 'https://apidog.ru/6.6/#');
+			const url = linkUrl.replace(/^https?:\/\/(m\.|new\.)?(vk\.(com|ru)|vkontakte\.ru)\//igm, 'https://apidog.ru/#');
+			const index = tab.index + 1;
 
-			chrome.tabs.create({
-				url: newUrl,
-				index: tab.index + 1,
-			});
+			chrome.tabs.create({ url, index });
 			break;
 		}
 	}

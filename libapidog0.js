@@ -1,25 +1,29 @@
 /**
  * APIdog Plus extension
- * @version 3.1
+ * @version 3.4
  * @author Vladislav Veluga; velu.ga
  */
 
-// https://stackoverflow.com/a/55215898/6142038
+/**
+ * HTTP-запрос через background (без учёта CORS)
+ * @see https://stackoverflow.com/a/55215898/6142038
+ * @param {string} input URL
+ * @param {object} [init] Параметры (второй аргумент fetch)
+ * @returns {Promise.<*>}
+ */
 function fetchResource(input, init) {
-	// В Firefox такой костыль не работает, поэтому не делаем через жопу, а делаем прямо
-	if (navigator.userAgent.indexOf('Firefox') >= 0) {
-		return fetch(input, init);
-	}
-
 	return new Promise((resolve, reject) => {
-		chrome.runtime.sendMessage({input, init}, messageResponse => {
+		chrome.runtime.sendMessage({ input, init }, messageResponse => {
 			const [response, error] = messageResponse;
 
 			if (response === null) {
 				reject(error);
 			} else {
 				// Use undefined on a 204 - No Content
+				// body прилетает от background.js, там мы просим fetch вернуть именно строку, потому что
+				// sendMessage умеет только в JSON serializable данные. Blob, arrayBuffer и прочее не такое.
 				const body = response.body ? new Blob([response.body]) : undefined;
+
 				resolve(new Response(body, {
 					status: response.status,
 					statusText: response.statusText,
@@ -33,34 +37,35 @@ function fetchResource(input, init) {
  * Запрос к API ВКонтакте
  * @param {string} method Название метода API
  * @param {object} params Объект параметров
- * @param {function} callback Callback-функция
+ * @returns {Promise.<*>} Ответ
  */
-function apiRequest(method, params, callback) {
-	const queryString = [];
-
-	for (const key in params) {
-		if (params.hasOwnProperty(key)) {
-			queryString.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
-		}
-	}
-
-	fetchResource('https://api.vk.com/method/' + method, {
+async function apiRequest(method, params) {
+	const res = await fetchResource(`https://api.vk.com/method/${method}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
+			'User-Agent': __APIDOG_PLUS_USER_AGENT__,
 		},
-		body: queryString.join('&'),
-	}).then(res => res.json()).then(json => callback(json));
+		body: new URLSearchParams(params).toString(),
+	});
+	const json = await res.json();
+
+	if ('error' in json) {
+		throw json.error;
+	}
+
+	return json.response;
 }
 
-const EXTENSION_VERSION = 3.3;
-const EXTENSION_AGENT = 'all';
+const EXTENSION_VERSION = 3.4;
 
-const METHOD_ACCESS_TOKEN_REQUIRE = 'onAccessTokenRequire';
-const METHOD_LONGPOLL_DATA_RECEIVED = 'onLongPollDataReceived';
-const METHOD_LONGPOLL_CONNECTION_ERROR = 'onLongPollConnectionError';
+const RESPONSE_ACCESS_TOKEN_REQUIRE = 'onAccessTokenRequire';
+const RESPONSE_LONGPOLL_DATA_RECEIVED = 'onLongPollDataReceived';
+const RESPONSE_LONGPOLL_CONNECTION_ERROR = 'onLongPollConnectionError';
+const RESPONSE_API_CALL_DONE = 'onApiCallDone';
 
-const EVENT_ACCESS_TOKEN_RECEIVED = 'onAccessTokenReceived';
+const INCOME_ACCESS_TOKEN_RECEIVED = 'onAccessTokenReceived';
+const INCOME_MAKE_API_CALL = 'onMakeApiCall';
 
 const ERROR_NO_RESPONSE_VKAPI = 1;
 const ERROR_WHILE_REQUEST_LONGPOLL = 2;
@@ -69,13 +74,12 @@ const ERROR_WHILE_REQUEST_LONGPOLL = 2;
  * Отправляет событие из расширения на страницу
  * @param {string} method
  * @param {object} data
- * @param {string=} callback
+ * @param {string=} [callback]
  */
 function sendEvent(method, data, callback) {
 	data.method = method;
 	data.callback = callback;
 	data.version = EXTENSION_VERSION;
-	data.agent = EXTENSION_AGENT;
 	console.log('sendEvent:', method + '@' + JSON.stringify(data));
 	window.postMessage(JSON.stringify(data), '*');
 }
@@ -83,20 +87,45 @@ function sendEvent(method, data, callback) {
 /**
  * Функция-распределитель событий, приходящих с сайта
  * @param {string} method
- * @param {object} data
+ * @param {{
+ *     useraccesstoken: string, // Токен (исторически дурацкое название)
+ *     userAgent: string,       // User-Agent
+ *     apiVersion: number,      // Версия API для messages.getLongPollServer
+ *     mode: number,            // mode для LongPoll
+ *     longpollVersion: number  // Версия LongPoll
+ * } | {
+ * 	   apiMethod: string;               // Название метода API
+ *     params: Record.<string, string>; // Параметры
+ *     id: string;                      // ID запроса
+ * }} data
  */
 function receiveEvent(method, data) {
 	switch (method) {
-
-		// Получение токена от страницы
-		case EVENT_ACCESS_TOKEN_RECEIVED:
+		// Получение токена от страницы.
+		case INCOME_ACCESS_TOKEN_RECEIVED: {
 			LongPoll.userAgent = data.userAgent;
 			data.apiVersion && (LongPoll.apiVersion = data.apiVersion);
 			data.mode && (LongPoll.mode = data.mode);
 			data.longpollVersion && (LongPoll.longpollVersion = data.longpollVersion);
-			LongPoll.init(data.useraccesstoken);
+			lp.init(data.useraccesstoken);
 			break;
+		}
+
+		// Требование сделать запрос к API и вернуть его.
+		case INCOME_MAKE_API_CALL: {
+			makeApiCall(data);
+			break;
+		}
 	}
+}
+
+/**
+ * Дикий костыль, проверка аля строка - JSON
+ * @param {*} data Строка
+ * @returns {boolean} true, если data может быть JSON
+ */
+function isStringJson(data) {
+	return typeof data === 'string' && data[0] === '{' && data[data.length - 1] === '}';
 }
 
 /**
@@ -107,83 +136,97 @@ window.addEventListener('message', event => {
 		return;
 	}
 
+	const data = event.data;
 	try {
-		const data = event.data;
-		// дитчайший костыль
-		const isJSON = typeof data === 'string' && data[0] === '{' && data[data.length - 1] === '}';
-		const res = isJSON ? JSON.parse(event.data) : event.data;
+		const res = isStringJson(data) ? JSON.parse(data) : data;
 
 		if (res && res.method && !res.agent) {
 			receiveEvent(res.method, res);
 		}
 	} catch (e) {
-		console.error('onMessage:', event.data, e);
+		console.error('onMessage:', data, e);
 	}
 });
 
 
+/**
+ * @param {{ apiMethod: string, params: Record.<string, string>, id: string }} data Данные для запроса
+ */
+async function makeApiCall(data) {
+	let result;
 
+	if (data.params) {
+		// да, медленно, но с data.params.callback = undefined не работает
+		delete data.params.callback;
+	}
 
+	try {
+		const response = await apiRequest(data.apiMethod, data.params);
+		result = { response };
+	} catch (error) {
+		result = { error };
+	} finally {
+		sendEvent(RESPONSE_API_CALL_DONE, { id: data.id, result });
+	}
+}
 
-const LongPoll = {
-
+class LongPoll {
 	/**
-	 * @var {string}
+	 * @type {string}
 	 * @public
 	 * @static
 	 */
-	userAgent: 'VKAndroidApp/4.12-1118',
+	static userAgent = __APIDOG_PLUS_USER_AGENT__;
 
 	/**
-	 * @var {number}
+	 * @type {number}
 	 * @public
 	 * @static
 	 */
-	apiVersion: 5.119,
+	static apiVersion = 5.131;
 
 	/**
-	 * @var {number}
+	 * @type {number}
 	 * @public
 	 * @static
 	 */
-	longpollVersion: 3,
+	static longpollVersion = 3;
 
 	/**
-	 * @var {number}
+	 * @type {number}
 	 * @public
 	 * @static
 	 */
-	mode: 2 | 8 | 64 | 128,
+	static mode = 2 | 8 | 64 | 128;
 
 	/**
-	 * @var {string|null}
+	 * @type {string=}
 	 * @private
 	 */
-	__userAccessToken: null,
+	__userAccessToken = null;
 
 	/**
-	 * @var {{}|null}
+	 * @type {ILongPollParams | null}
 	 * @private
 	 */
-	__params: null,
+	__params = null;
 
 	/**
-	 * @var {boolean}
+	 * @type {boolean}
 	 * @private
 	 */
-	__stopped: true,
+	__stopped = true;
 
-	/**
-	 * @var {XMLHttpRequest|null}
-	 * @private
-	 */
-	__xhr: null,
+	constructor() {
+		this.__request = this.__request.bind(this);
+	}
 
 	/**
 	 * Инициализация LongPoll
 	 * @public
+	 * @param {string} userAccessToken
 	 */
-	init: function(userAccessToken) {
+	init(userAccessToken) {
 		console.info('[Extension] start init longpoll');
 
 		if (!this.__stopped) {
@@ -194,84 +237,90 @@ const LongPoll = {
 		this.__stopped = false;
 		this.__userAccessToken = userAccessToken;
 		this.__getServer();
-	},
+	}
 
 	/**
 	 * Получение адреса сервера LongPoll
 	 * @private
 	 */
-	__getServer: function() {
-		if (this.__stopped) {
-			return;
-		}
+	async __getServer() {
+		if (this.__stopped) return;
 
-		apiRequest('messages.getLongPollServer', {
-			access_token: this.__userAccessToken,
-			lp_version: LongPoll.longpollVersion,
-			v: LongPoll.apiVersion,
-		}, data => {
-			if (!data.response) {
-				data = data.error;
-				sendEvent(METHOD_LONGPOLL_DATA_RECEIVED, {
-					errorId: ERROR_NO_RESPONSE_VKAPI,
-					error: data
-				});
-				return;
-			}
+		try {
+			/** @type {ILongPollParams} */
+			const data = await apiRequest('messages.getLongPollServer', {
+				access_token: this.__userAccessToken,
+				lp_version: LongPoll.longpollVersion,
+				v: LongPoll.apiVersion,
+			});
 
-			this.__params = data.response;
+			this.__params = data;
+
 			this.__request();
-		});
-	},
+		} catch (error) {
+			sendEvent(RESPONSE_LONGPOLL_DATA_RECEIVED, {
+				errorId: ERROR_NO_RESPONSE_VKAPI,
+				error,
+			});
+		}
+	}
 
 	/**
 	 * Запрос к LongPoll для получения новых событий
 	 * @private
 	 */
-	__request: function() {
-		fetchResource('https://' + this.__params.server + '?act=a_check&key=' + this.__params.key + '&ts=' + this.__params.ts + '&wait=25&mode=' + LongPoll.mode + '&version=' + LongPoll.longpollVersion)
-			.then(res => res.json())
-			.then(result => {
-				if (result.failed) {
-					return this.__getServer();
-				}
+	async __request() {
+		if (this.__params === null) return;
 
-				this.__params.ts = result.ts;
-				this.__xhr = null;
-				this.__request();
-				this.__sendEvents(result.updates);
-			}).catch(event => {
-				sendEvent(METHOD_LONGPOLL_CONNECTION_ERROR, {
-					errorId: ERROR_WHILE_REQUEST_LONGPOLL,
-					error: event
-				});
-				this.__getServer();
+		const { server, key, ts } = this.__params;
+
+		try {
+			const request = await fetchResource(`https://${server}?act=a_check&key=${key}&ts=${ts}&wait=25&mode=${LongPoll.mode}&version=${LongPoll.longpollVersion}`);
+			const result = await request.json();
+
+			if (result.failed) return this.__getServer();
+
+			this.__params.ts = result.ts;
+
+			setTimeout(this.__request, 1000);
+			this.__sendEvents(result.updates || []);
+		} catch (event) {
+			sendEvent(RESPONSE_LONGPOLL_CONNECTION_ERROR, {
+				errorId: ERROR_WHILE_REQUEST_LONGPOLL,
+				error: event
 			});
-	},
+			this.__getServer();
+		}
+	}
 
 	/**
 	 * Отправка событий на сайт
-	 * @param {object[]} items
+	 * @param {object[]} updates
 	 * @private
 	 */
-	__sendEvents: items => sendEvent(METHOD_LONGPOLL_DATA_RECEIVED, { updates: items }),
+	__sendEvents(updates) {
+		sendEvent(RESPONSE_LONGPOLL_DATA_RECEIVED, { updates });
+	}
 
 	/**
 	 * Разрыв соединения
 	 * @public
 	 */
-	abort: function() {
+	abort() {
 		this.__stopped = true;
-		if (this.__xhr) {
-			this.__xhr.abort();
-		}
-	},
-};
+	}
+}
+
+/**
+ * @typedef {{ ts: number, server: string, key: string }} ILongPollParams
+ */
+
+const lp = new LongPoll();
 
 /**
  * Инициализация расширения на странице: запрос токена с сайта
  */
-sendEvent(METHOD_ACCESS_TOKEN_REQUIRE, {}, EVENT_ACCESS_TOKEN_RECEIVED);
+sendEvent(RESPONSE_ACCESS_TOKEN_REQUIRE, {}, INCOME_ACCESS_TOKEN_RECEIVED);
 
 /**
  * Костыль для Firefox
@@ -281,5 +330,5 @@ sendEvent(METHOD_ACCESS_TOKEN_REQUIRE, {}, EVENT_ACCESS_TOKEN_RECEIVED);
  * вкладки
  */
 window.addEventListener('beforeunload', function() {
-	LongPoll.abort();
+	lp.abort();
 });

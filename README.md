@@ -10,7 +10,7 @@
 
 Заменить на:
 ```
-VKAndroidApp/5.56.1-4841
+VKAndroidApp/7.7-10445
 ```
 
 ### LongPoll
