@@ -21,6 +21,8 @@
 		"*://*.vk.ru/*",
 		"*://*.vk.me/*",
 		"*://*.mycdn.me/*",
+		"*://*.vkuser.net/*",
+		"*://*.vkuseraudio.net/*",
 		"contextMenus"
 	],
 	"background": {

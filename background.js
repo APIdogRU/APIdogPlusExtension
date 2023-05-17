@@ -45,6 +45,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(info => {
 		'*://api.vk.ru/*', // API fallback
 		'*://api.vk.me/*', // LongPoll
 		'*://*.mycdn.me/*', // видеозаписи
+		'*://*.vkuser.net/*', // видеозаписи
 		'*://*.vkuseraudio.net/*', // аудиозаписи
 	],
 }, ['blocking', 'requestHeaders']);
