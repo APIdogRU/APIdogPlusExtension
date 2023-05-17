@@ -16,10 +16,17 @@ const headerOverrideMap = {
  * Смена заголовков для запросов к API VK и другим служебным доменам
  */
 chrome.webRequest.onBeforeSendHeaders.addListener(info => {
-	const { requestHeaders } = info;
+	const { requestHeaders, initiator, url } = info;
+
+	const needChangeRequestHeaders = initiator !== undefined && (
+		// video, audio
+		initiator.includes('apidog.ru') ||
+		// запросы к API с расширением делаются от имени расширения
+		initiator.includes('chrome-extension') && url.includes('api.vk.com')
+	);
 
 	// Тайпинги подсказывают, что оно может быть undefined
-	if (requestHeaders !== undefined) {
+	if (needChangeRequestHeaders && requestHeaders !== undefined) {
 		const referer = requestHeaders.find(header => header.name.toLowerCase() === 'referer');
 
 		// Меняем заголовки только если запрос с apidog.ru (или в худшем случае - не знаем откуда)

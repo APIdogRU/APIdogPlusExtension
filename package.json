@@ -1,6 +1,6 @@
 {
   "name": "@apidog/plus-extension",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Расширение для браузеров с поддержкой WebExtensions для сайта APIdog",
   "repository": {
     "type": "git",

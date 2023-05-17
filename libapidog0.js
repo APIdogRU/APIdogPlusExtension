@@ -1,6 +1,6 @@
 /**
  * APIdog Plus extension
- * @version 3.4
+ * @version 3.5
  * @author Vladislav Veluga; velu.ga
  */
 
@@ -57,7 +57,7 @@ async function apiRequest(method, params) {
 	return json.response;
 }
 
-const EXTENSION_VERSION = 3.4;
+const EXTENSION_VERSION = 3.5;
 
 const RESPONSE_ACCESS_TOKEN_REQUIRE = 'onAccessTokenRequire';
 const RESPONSE_LONGPOLL_DATA_RECEIVED = 'onLongPollDataReceived';
