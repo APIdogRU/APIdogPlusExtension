@@ -12,13 +12,16 @@ const headerOverrideMap = {
 	origin: 'https://vk.com',
 };
 
+const isFirefox = navigator.userAgent.includes('Firefox');
+
 /**
  * Смена заголовков для запросов к API VK и другим служебным доменам
  */
 chrome.webRequest.onBeforeSendHeaders.addListener(info => {
 	const { requestHeaders, initiator, url } = info;
 
-	const needChangeRequestHeaders = initiator !== undefined && (
+	// У Firefox отсутствует initiator
+	const needChangeRequestHeaders = isFirefox || initiator !== undefined && (
 		// video, audio
 		initiator.includes('apidog.ru') ||
 		// запросы к API с расширением делаются от имени расширения
